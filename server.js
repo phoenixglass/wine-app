@@ -17,7 +17,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 // API Keys - Add these as environment variables in Railway
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || 'sk_17254b66372cebc52de070e2d8584e0309333848556a0065';
 const VOICE_ID = process.env.VOICE_ID || 'rzsnuMd2pwYz1rGtMIVI';
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY; // No hardcoded key here!
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY; // Add your OpenAI key here
 
 // Simple in-memory database
 let wines = [
