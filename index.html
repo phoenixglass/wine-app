@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wine Voice Assistant</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 24px;
+            padding: 48px;
+            max-width: 640px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.12);
+        }
+        .header {
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            color: #1a1a1a;
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .header p {
+            color: #666;
+            font-size: 1.2rem;
+            font-weight: 400;
+        }
+        .start-button {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            border-radius: 16px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 32px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(40, 167, 69, 0.3);
+        }
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(40, 167, 69, 0.4);
+        }
+        .start-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .mic-container {
+            margin: 32px 0;
+        }
+        .mic-button {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+            font-size: 3.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 12px 32px rgba(255, 107, 107, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+        .mic-button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 16px 40px rgba(255, 107, 107, 0.4);
+        }
+        .mic-button.listening {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            animation: pulse 1.5s infinite;
+        }
+        .mic-button:disabled {
+            background: #e0e0e0;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 12px 32px rgba(78, 205, 196, 0.3); }
+            50% { transform: scale(1.1); box-shadow: 0 16px 40px rgba(78, 205, 196, 0.5); }
+            100% { transform: scale(1); box-shadow: 0 12px 32px rgba(78, 205, 196, 0.3); }
+        }
+        .status {
+            padding: 20px;
+            border-radius: 12px;
+            margin: 24px 0;
+            font-weight: 600;
+            font-size: 1.1rem;
+            min-height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .status.idle { background: #e3f2fd; color: #1976d2; }
+        .status.ready { background: #e8f5e8; color: #2e7d32; }
+        .status.listening { background: #fff3e0; color: #f57c00; }
+        .status.processing { background: #fce4ec; color: #c2185b; }
+        .status.speaking { background: #f3e5f5; color: #7b1fa2; }
+        .status.error { background: #ffebee; color: #c62828; }
+        .conversation {
+            margin: 32px 0;
+        }
+        .message {
+            padding: 20px;
+            border-radius: 12px;
+            margin: 16px 0;
+            min-height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        .question {
+            background: #f5f5f5;
+            color: #444;
+            font-style: italic;
+            border-left: 4px solid #2196f3;
+        }
+        .answer {
+            background: #e8f5e8;
+            color: #2e7d32;
+            font-weight: 600;
+            border-left: 4px solid #4caf50;
+        }
+        .examples {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            padding: 32px;
+            margin-top: 40px;
+            text-align: left;
+        }
+        .examples h3 {
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.4rem;
+        }
+        .examples ul {
+            list-style: none;
+            padding: 0;
+        }
+        .examples li {
+            background: #f8f9fa;
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+            font-size: 1rem;
+        }
+        .browser-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+            color: #856404;
+        }
+        @media (max-width: 768px) {
+            .container { padding: 32px 24px; margin: 16px; }
+            .header h1 { font-size: 2.2rem; }
+            .mic-button { width: 120px; height: 120px; font-size: 3rem; }
+            .start-button { padding: 16px 32px; font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍷 Wine Assistant</h1>
+            <p>Ask about our wine inventory using your voice</p>
+        </div>
+        
+        <div class="browser-notice">
+            <strong>📱 Best Experience:</strong> Use Chrome or Edge browser for voice recognition
+        </div>
+        
+        <button class="start-button" id="startButton" onclick="initialize()">
+            🚀 Start Wine Assistant
+        </button>
+        
+        <div class="mic-container">
+            <button class="mic-button" id="micButton" disabled>🎤</button>
+        </div>
+        
+        <div class="status idle" id="status">
+            Click "Start Wine Assistant" to begin
+        </div>
+        
+        <div class="conversation">
+            <div class="message question" id="question">
+                Your question will appear here...
+            </div>
+            <div class="message answer" id="answer">
+                The answer will appear here...
+            </div>
+        </div>
+        
+        <div class="examples">
+            <h3>Try asking:</h3>
+            <ul>
+                <li>"How much Pinot Noir do we have in stock?"</li>
+                <li>"What's the price of Cabernet Sauvignon?"</li>
+                <li>"Who was the last customer to order Syrah?"</li>
+                <li>"Show me all our wines"</li>
+                <li>"What wines do we have?"</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const BACKEND_URL = 'https://aimee-production.up.railway.app';
+        const ELEVENLABS_API_KEY = 'sk_17254b66372cebc52de070e2d8584e0309333848556a0065';
+        const VOICE_ID = 'rzsnuMd2pwYz1rGtMIVI';
+        
+        // Wine inventory data
+        const wines = [
+            { wine_name: "Pinot Noir", price: "$18", inventory: 120, customer_last_ordered: "Thompson Restaurant" },
+            { wine_name: "Cabernet Sauvignon", price: "$35", inventory: 12, customer_last_ordered: "Johnson Winery" },
+            { wine_name: "Syrah", price: "$25", inventory: 0, customer_last_ordered: "Westport Spirits" }
+        ];
+
+        // State
+        let authToken = null;
+        let recognition = null;
+        let isListening = false;
+        let isInitialized = false;
+
+        // DOM elements
+        const startButton = document.getElementById('startButton');
+        const micButton = document.getElementById('micButton');
+        const status = document.getElementById('status');
+        const questionDiv = document.getElementById('question');
+        const answerDiv = document.getElementById('answer');
+
+        function setStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        function checkSpeechSupport() {
+            const hasSupport = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+            if (!hasSupport) {
+                setStatus('❌ Voice recognition not supported. Please use Chrome or Edge browser.', 'error');
+                return false;
+            }
+            return true;
+        }
+
+        async function loginToBackend() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'wine123' })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Login failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                authToken = data.token;
+                return true;
+            } catch (error) {
+                console.error('Backend login failed:', error);
+                setStatus('❌ Could not connect to wine database. Using offline mode.', 'error');
+                return false;
+            }
+        }
+
+        async function testVoiceRecognition() {
+            return new Promise((resolve) => {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                const testRecognition = new SpeechRecognition();
+                
+                let timeout = setTimeout(() => {
+                    testRecognition.stop();
+                    resolve(true);
+                }, 1000);
+
+                testRecognition.onstart = () => {
+                    setStatus('Testing microphone access...', 'processing');
+                };
+
+                testRecognition.onend = () => {
+                    clearTimeout(timeout);
+                    resolve(true);
+                };
+
+                testRecognition.onerror = (event) => {
+                    clearTimeout(timeout);
+                    if (event.error === 'not-allowed') {
+                        setStatus('❌ Microphone access denied. Please allow microphone access and try again.', 'error');
+                        resolve(false);
+                    } else {
+                        resolve(true); // Continue anyway for other errors
+                    }
+                };
+
+                try {
+                    testRecognition.start();
+                } catch (error) {
+                    clearTimeout(timeout);
+                    resolve(true);
+                }
+            });
+        }
+
+        async function initialize() {
+            if (isInitialized) return;
+
+            setStatus('Initializing wine assistant...', 'processing');
+            
+            // Check browser support
+            if (!checkSpeechSupport()) return;
+            
+            // Test voice recognition
+            const voiceOk = await testVoiceRecognition();
+            if (!voiceOk) return;
+            
+            // Login to backend
+            await loginToBackend();
+            
+            // Mark as initialized
+            isInitialized = true;
+            startButton.textContent = '✅ Ready!';
+            startButton.disabled = true;
+            micButton.disabled = false;
+            
+            setStatus('🎤 Click the microphone and ask about wines!', 'ready');
+        }
+
+        function findWineAnswer(query) {
+            const q = query.toLowerCase();
+            
+            // Check for customer queries
+            for (const wine of wines) {
+                const customer = wine.customer_last_ordered.toLowerCase();
+                const customerWords = customer.split(' ');
+                if (customerWords.some(word => q.includes(word)) || q.includes(customer)) {
+                    return `${wine.customer_last_ordered} last ordered ${wine.wine_name}.`;
+                }
+            }
+
+            // Check for wine-specific queries
+            for (const wine of wines) {
+                const name = wine.wine_name.toLowerCase();
+                const nameWords = name.split(' ');
+                
+                if (q.includes(name) || nameWords.some(word => q.includes(word))) {
+                    if (q.includes('inventory') || q.includes('stock') || q.includes('how many') || q.includes('how much') || q.includes('have')) {
+                        return `We have ${wine.inventory} bottles of ${wine.wine_name} in stock.`;
+                    } else if (q.includes('price') || q.includes('cost') || q.includes('much does')) {
+                        return `The price of ${wine.wine_name} is ${wine.price}.`;
+                    } else if (q.includes('ordered') || q.includes('customer') || q.includes('who') || q.includes('last')) {
+                        return `The last customer to order ${wine.wine_name} was ${wine.customer_last_ordered}.`;
+                    } else {
+                        return `${wine.wine_name}: ${wine.inventory} bottles in stock at ${wine.price}. Last ordered by ${wine.customer_last_ordered}.`;
+                    }
+                }
+            }
+
+            // List all wines
+            if (q.includes('show') || q.includes('all') || q.includes('list') || q.includes('what wines') || q.includes('wines do')) {
+                return `Here's our wine inventory: ${wines.map(w => `${w.wine_name} (${w.inventory} bottles at ${w.price})`).join(', ')}.`;
+            }
+
+            return "I'm sorry, I couldn't find information about that wine or customer. Try asking about Pinot Noir, Cabernet Sauvignon, or Syrah.";
+        }
+
+        async function speakAnswer(text) {
+            try {
+                setStatus('🔊 Speaking response...', 'speaking');
+                
+                const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
+                    method: 'POST',
+                    headers: {
+                        'xi-api-key': ELEVENLABS_API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        voice_settings: { 
+                            stability: 0.5, 
+                            similarity_boost: 0.75 
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const audioBlob = await response.blob();
+                    const audio = new Audio(URL.createObjectURL(audioBlob));
+                    
+                    audio.onended = () => {
+                        setStatus('🎤 Ready for your next question!', 'ready');
+                    };
+                    
+                    await audio.play();
+                } else {
+                    throw new Error(`ElevenLabs API error: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Speech synthesis failed:', error);
+                setStatus('Response ready! (Voice playback failed)', 'ready');
+            }
+        }
+
+        async function logToServer(query, response) {
+            if (!authToken) return;
+            
+            try {
+                await fetch(`${BACKEND_URL}/api/logs`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query,
+                        response,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+            } catch (error) {
+                console.error('Logging failed:', error);
+                // Silent fail for logging
+            }
+        }
+
+        function startListening() {
+            if (!isInitialized || isListening) return;
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                isListening = true;
+                micButton.classList.add('listening');
+                setStatus('🎤 Listening... Ask your wine question now!', 'listening');
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                questionDiv.textContent = `"${transcript}"`;
+                
+                setStatus('🤔 Processing your question...', 'processing');
+                
+                // Small delay for better UX
+                setTimeout(() => {
+                    const answer = findWineAnswer(transcript);
+                    answerDiv.textContent = answer;
+                    
+                    // Log to server
+                    logToServer(transcript, answer);
+                    
+                    // Speak the answer
+                    speakAnswer(answer);
+                }, 800);
+            };
+
+            recognition.onerror = (event) => {
+                isListening = false;
+                micButton.classList.remove('listening');
+                
+                if (event.error === 'no-speech') {
+                    setStatus('No speech detected. Please try again.', 'error');
+                    setTimeout(() => setStatus('🎤 Ready for your next question!', 'ready'), 2000);
+                } else if (event.error === 'not-allowed') {
+                    setStatus('❌ Microphone access denied. Please allow microphone access in your browser.', 'error');
+                } else {
+                    setStatus('Speech recognition error. Please try again.', 'error');
+                    setTimeout(() => setStatus('🎤 Ready for your next question!', 'ready'), 2000);
+                }
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                micButton.classList.remove('listening');
+            };
+
+            try {
+                recognition.start();
+            } catch (error) {
+                isListening = false;
+                setStatus('Could not start voice recognition. Please try again.', 'error');
+            }
+        }
+
+        // Event listeners
+        micButton.addEventListener('click', startListening);
+        
+        // Keyboard shortcut (spacebar to start listening)
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space' && !isListening && isInitialized) {
+                event.preventDefault();
+                startListening();
+            }
+        });
+    </script>
+</body>
+</html>
