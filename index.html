@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aimee – Voice-Powered Sales Assistant</title>
+    <style>
+        /* [CSS UNCHANGED — OMITTED FOR BREVITY] */
+    </style>
+</head>
+<body>
+    <div class="onboarding" id="onboarding" style="display: none">
+        <div class="onboarding-box">
+            <h2>Welcome to Aimee</h2>
+            <p>Tap the mic and speak your question, or say "Aimee" to activate me (on desktop).</p>
+            <label style="display:block; margin: 10px 0;">
+                <input type="checkbox" id="hideOnboardingToggle"> Don’t show this again
+            </label>
+            <button onclick="dismissOnboarding()">Got it</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <img class="logo" src="Copy of Aimee.png" alt="Aimee Logo">
+        <h1>Aimee</h1>
+        <div class="subtitle">Voice-Powered Sales Assistant</div>
+
+        <button class="mic-button" id="micButton" title="Tap to speak">🎤</button>
+        <div class="status" id="status">Initializing…</div>
+        <div id="answer" class="answer"></div>
+
+        <div class="browser-notice">
+            <strong>ℹ️ How to Use:</strong> Tap the mic, speak your question clearly, then tap again to finish. You'll see and hear the answer.<br>
+            🧪 Experimental: Say "Aimee" to activate listening (desktop only).<br>
+            <label><input type="checkbox" id="wakeWordToggle"> Enable Wake Word Mode</label>
+            <div class="tooltip">This feature lets Aimee auto-activate when she hears her name. Works only on desktop. You can also press Ctrl+Shift+A.</div>
+        </div>
+    </div>
+
+    <script>
+        function speakWelcomeMessage(text) {
+            const VOICE_ID = 'rzsnuMd2pwYz1rGtMIVI';
+            const ELEVENLABS_API_KEY = 'sk_17254b66372cebc52de070e2d8584e0309333848556a0065';
+
+            fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
+                method: 'POST',
+                headers: {
+                    'xi-api-key': ELEVENLABS_API_KEY,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: text,
+                    voice_settings: {
+                        stability: 0.75,
+                        similarity_boost: 0.8,
+                        style: 0.2,
+                        use_speaker_boost: true
+                    }
+                })
+            })
+            .then(res => res.blob())
+            .then(blob => {
+                const audio = new Audio(URL.createObjectURL(blob));
+                audio.play();
+            })
+            .catch(err => console.error('Voice failed:', err));
+        }
+
+        function dismissOnboarding() {
+            const dontShow = document.getElementById('hideOnboardingToggle').checked;
+            if (dontShow) {
+                localStorage.setItem('aimeeHideOnboarding', 'true');
+            }
+            document.getElementById('onboarding').style.display = 'none';
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            function checkHelpIntent(transcription) {
+                const question = transcription.trim().toLowerCase();
+                if (question.includes("what can you do") || question.includes("help") || question.includes("how can you help")) {
+                    const helpResponse = "I can help you check wine inventory, find pricing, contact customers, or send emails. Just ask me a question like: 'Do we have any Pinot Noir left?' or 'Email Lisa about the Chardonnay order.'";
+                    document.getElementById('answer').textContent = helpResponse;
+                    speakWelcomeMessage(helpResponse);
+                    return true;
+                }
+                return false;
+            }
+
+            window.checkHelpIntent = checkHelpIntent;
+
+            const welcome = "Hi, I'm Aimee, your voice-powered wine sales assistant. Ask me about inventory, pricing, or customers.";
+            const answerDiv = document.getElementById('answer');
+            const status = document.getElementById('status');
+            if (answerDiv) answerDiv.textContent = welcome;
+            if (status) {
+                status.textContent = '👋 Welcome! Aimee is standing by.';
+                status.className = 'status ready';
+            }
+
+            const onboardingDismissed = localStorage.getItem('aimeeHideOnboarding') === 'true';
+            if (!onboardingDismissed) {
+                document.getElementById('onboarding').style.display = 'flex';
+            } else {
+                speakWelcomeMessage(welcome);
+            }
+
+            window.addEventListener('aimeeQuestion', (e) => {
+                checkHelpIntent(e.detail);
+            });
+
+            // Attach this to your transcription pipeline
+            let currentIntent = { type: null, data: null };
+
+function renderSuggestions(response) {
+    const answerDiv = document.getElementById('answer');
+    const existing = document.querySelector('.suggestions');
+    if (existing) existing.remove();
+
+    const suggestions = document.createElement('div');
+    suggestions.className = 'suggestions';
+
+    if (response.includes("inventory")) {
+        suggestions.innerHTML = '<button onclick="alert(\'Opening inventory view...\')">View Stock</button>';
+    } else if (response.includes("pricing")) {
+        suggestions.innerHTML = '<button onclick="alert(\'Opening pricing tools...\')">Check Prices</button>';
+    } else if (response.includes("email")) {
+        suggestions.innerHTML = '<button onclick="alert(\'Opening email draft...\')">Send Email</button>';
+    } else if (response.includes("customer")) {
+        suggestions.innerHTML = '<button onclick="alert(\'Accessing customer details...\')">View Customers</button>';
+    } else if (response.includes("remind")) {
+        suggestions.innerHTML = '<button onclick="alert(\'Setting a reminder...\')">Set Reminder</button>';
+    }
+
+    answerDiv.insertAdjacentElement('afterend', suggestions);
+}
+
+function logInteraction(type, content) {
+    console.log(`[Aimee Log] Type: ${type} | Content: ${content}`);
+    // TODO: Replace console.log with API call or localStorage save if needed.
+}
+
+window.handleTranscription = function(transcript) {
+    if (checkHelpIntent(transcript)) return;
+
+    const lower = transcript.toLowerCase();
+    let response = "";
+
+    if (currentIntent.type === "email" && /(lisa|johnson winery|wine depot|sarah)/.test(lower)) {
+        const match = lower.match(/(lisa|johnson winery|wine depot|sarah)/);
+        const recipient = match ? match[0] : "them";
+        response = `Got it. Drafting your email to ${recipient}.`;
+        logInteraction("email-followup", recipient);
+        currentIntent = { type: null, data: null };
+    
+        });
+    </script>
+</body>
+</html>
